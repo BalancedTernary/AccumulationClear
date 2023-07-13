@@ -29,6 +29,7 @@ class AccumulationClear(Optimizer):
         self.lr_supplement=lr_supplement
         self.weight_decay = weight_decay
         self.decay_flexibility=decay_flexibility
+        self.minLoss = 0
 
     def __setstate__(self, state):
         super(AccumulationClear, self).__setstate__(state)
@@ -37,7 +38,11 @@ class AccumulationClear(Optimizer):
         if closure is not None:
             loss = closure()
             loss.backward()
-        if loss is not None and not loss.isfinite():
+        if loss is None:
+            loss=1
+        if loss<self.minLoss:
+            self.minLoss=loss
+        if not loss.isfinite():
             return
         with torch.no_grad():
             for group in self.param_groups:
@@ -56,7 +61,7 @@ class AccumulationClear(Optimizer):
                     
                     
                     #d=-p.grad.data*self.lr*(p.data.abs()+1)
-                    d=-p.grad.data*self.lr*(p.data.abs()+self.lr_supplement)
+                    d=-p.grad.data*self.lr*(p.data.abs()*(loss-self.minLoss)+self.lr_supplement)
                     if self.resistance is None:
                         state['speed'][state['speed']*d<0]=float('nan')
                     else:
