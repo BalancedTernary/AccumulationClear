@@ -84,10 +84,10 @@ class AccumulationClear(Optimizer):
                     state = self.state[p]  #get state dict for this param
                     if len(state) == 0:   #if first time to run...init dictionary with our desired entries
                         state['speed'] = torch.zeros_like(p.grad.data)
-                        state['snapshot'] = p.data
+                        state['snapshot'] = p.data.clone()
                     
                     if self.t>=self.limit_snapshot_cycle and neutral<self.minNeutral: #不能在这里清零t,否则快照拍摄不完整
-                        state['snapshot'] = p.data
+                        state['snapshot'] = p.data.clone()
 
                     #d=-p.grad.data*self.lr*(p.data.abs()+1)
                     d=-p.grad.data*self.lr*(p.data.abs()*(loss-self.minLoss)/self.maxLoss+self.lr_supplement)
@@ -108,15 +108,18 @@ class AccumulationClear(Optimizer):
                     if neutral>self.snapshot_recovery_threshold*self.minNeutral:
                         state['speed'] = torch.zeros_like(p.grad.data)
                         p.grad.data = torch.zeros_like(p.grad.data)
-                        p.data=state['snapshot']
-                        t=0
-                        self.upperEnvelope = self.upperEnvelopeCache
-                        self.lowerEnvelope = self.lowerEnvelopeCache
+                        p.data=state['snapshot'].clone()
+                        
                     
         if self.t>=self.limit_snapshot_cycle and neutral<self.minNeutral:
             t=0
         if neutral<self.minNeutral:
             self.minNeutral=neutral
+        if neutral>self.snapshot_recovery_threshold*self.minNeutral:
+            t=0
+            self.upperEnvelope = self.upperEnvelopeCache
+            self.lowerEnvelope = self.lowerEnvelopeCache
+
         self.upperEnvelopeCache = self.upperEnvelope
         self.lowerEnvelopeCache = self.lowerEnvelope
 
