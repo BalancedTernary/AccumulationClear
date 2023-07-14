@@ -39,6 +39,7 @@ class AccumulationClear(Optimizer):
         self.snapshot_recovery_threshold=snapshot_recovery_threshold
         self.limit_snapshot_cycle=limit_snapshot_cycle
         self.minLoss = 0
+        self.maxLoss = 1
         self.upperEnvelope = -2**15
         self.lowerEnvelope = 2**15
         self.upperEnvelopeCache = -2**15
@@ -57,6 +58,8 @@ class AccumulationClear(Optimizer):
             loss=1
         if loss<self.minLoss:
             self.minLoss=loss
+        if loss>self.maxLoss:
+            self.maxLoss=loss
         self.t+=1
 
         self.upperEnvelope-=self.smoots_decrement
@@ -87,7 +90,7 @@ class AccumulationClear(Optimizer):
                         state['snapshot'] = p.data
 
                     #d=-p.grad.data*self.lr*(p.data.abs()+1)
-                    d=-p.grad.data*self.lr*(p.data.abs()*(loss-self.minLoss)+self.lr_supplement)
+                    d=-p.grad.data*self.lr*(p.data.abs()*(loss-self.minLoss)/self.maxLoss+self.lr_supplement)
                     if self.resistance is None:
                         state['speed'][state['speed']*d<0]=float('nan')
                     else:
