@@ -56,10 +56,7 @@ class AccumulationClear(Optimizer):
             loss.backward()
         if loss is None:
             loss=1
-        if loss<self.minLoss:
-            self.minLoss=loss
-        if loss>self.maxLoss:
-            self.maxLoss=loss
+        
         self.t+=1
 
         self.upperEnvelope-=self.smoots_decrement
@@ -69,6 +66,12 @@ class AccumulationClear(Optimizer):
         if loss<self.lowerEnvelope: #前面不能加else,不然因为两者的自动衰减会导致值出现错误
             self.lowerEnvelope=loss
         neutral=(self.upperEnvelope+self.lowerEnvelope)/2
+
+        if neutral<self.snapshot_recovery_threshold*self.minNeutral and loss.isfinite():
+            if loss<self.minLoss:
+                self.minLoss=loss
+            if loss>self.maxLoss:
+                self.maxLoss=loss
 
         with torch.no_grad():
             for group in self.param_groups:
