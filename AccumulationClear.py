@@ -105,7 +105,7 @@ class AccumulationClear(Optimizer):
 
                     p.data.add_(state['speed'])
 
-                    if neutral>self.snapshot_recovery_threshold*self.minNeutral:
+                    if neutral>self.snapshot_recovery_threshold*self.minNeutral or not loss.isfinite():
                         state['speed'] = torch.zeros_like(p.grad.data)
                         p.grad.data = torch.zeros_like(p.grad.data)
                         p.data=state['snapshot'].clone()
@@ -115,7 +115,7 @@ class AccumulationClear(Optimizer):
             t=0
         if neutral<self.minNeutral:
             self.minNeutral=neutral
-        if neutral>self.snapshot_recovery_threshold*self.minNeutral:
+        if neutral>self.snapshot_recovery_threshold*self.minNeutral or not loss.isfinite():
             t=0
             self.upperEnvelope = self.upperEnvelopeCache
             self.lowerEnvelope = self.lowerEnvelopeCache
