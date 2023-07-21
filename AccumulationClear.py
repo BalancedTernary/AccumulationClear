@@ -5,7 +5,7 @@ from torch.optim.optimizer import Optimizer, required
 
 
 class AccumulationClear(Optimizer):
-    def __init__(self, params, lr=1e-4, resistance=None, lr_supplement=None, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=10, limit_snapshot_cycle=100):
+    def __init__(self, params, lr=1e-4, resistance=None, lr_supplement=None, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=3, limit_snapshot_cycle=100):
         #parameter checks
         if lr<=0: #学习速率
             raise ValueError(f'Invalid 学习速率: {lr}')
@@ -62,16 +62,16 @@ class AccumulationClear(Optimizer):
         self.upperEnvelope-=self.smoots_decrement
         self.lowerEnvelope+=self.smoots_decrement
         if loss>self.upperEnvelope:
-            self.upperEnvelope=loss
+            self.upperEnvelope=loss.clone()
         if loss<self.lowerEnvelope: #前面不能加else,不然因为两者的自动衰减会导致值出现错误
-            self.lowerEnvelope=loss
+            self.lowerEnvelope=loss.clone()
         neutral=(self.upperEnvelope+self.lowerEnvelope)/2
 
         if neutral<self.snapshot_recovery_threshold*self.minNeutral and loss.isfinite():
             if loss<self.minLoss:
-                self.minLoss=loss
+                self.minLoss=loss.clone()
             if loss>self.maxLoss:
-                self.maxLoss=loss
+                self.maxLoss=loss.clone()
 
         with torch.no_grad():
             for group in self.param_groups:
@@ -117,14 +117,14 @@ class AccumulationClear(Optimizer):
         if self.t>=self.limit_snapshot_cycle and neutral<self.minNeutral:
             t=0
         if neutral<self.minNeutral:
-            self.minNeutral=neutral
+            self.minNeutral=neutral.clone()
         if neutral>self.snapshot_recovery_threshold*self.minNeutral or not loss.isfinite():
             t=0
-            self.upperEnvelope = self.upperEnvelopeCache
-            self.lowerEnvelope = self.lowerEnvelopeCache
+            self.upperEnvelope = self.upperEnvelopeCache.clone()
+            self.lowerEnvelope = self.lowerEnvelopeCache.clone()
 
-        self.upperEnvelopeCache = self.upperEnvelope
-        self.lowerEnvelopeCache = self.lowerEnvelope
+        self.upperEnvelopeCache = self.upperEnvelope.clone()
+        self.lowerEnvelopeCache = self.lowerEnvelope.clone()
 
         return loss
 
