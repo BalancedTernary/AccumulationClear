@@ -4,7 +4,7 @@ import sys
 import torch
 from torch.optim.optimizer import Optimizer, required
 
-#此优化器的主要超参数调节方法
+#此优化器的主要超参数调节方法(仅供参考，还没摸索出最优调试方法)
 #1.设定resistance为None,lr_supplement为0,weight_decay为0
 #2.寻找一个可以持续训练,不频繁发散的最大lr
 #3.逐步调大resistance,寻找不破坏训练的最大resistance
@@ -67,7 +67,7 @@ class AccumulationClear(Optimizer):
             loss = closure()
             loss.backward()
         if loss is None:
-            loss=1
+            loss=torch.tensor(1)
         
         k=torch.atan(loss*math.pi/2)*2/math.pi
         if loss<0 or not self.lossNeverNegative:
@@ -76,8 +76,8 @@ class AccumulationClear(Optimizer):
 
         self.t+=1
 
-        self.upperEnvelope-=self.smoots_decrement
-        self.lowerEnvelope+=self.smoots_decrement
+        self.upperEnvelope=self.upperEnvelope-self.smoots_decrement
+        self.lowerEnvelope=self.lowerEnvelope+self.smoots_decrement
         if loss>self.upperEnvelope:
             self.upperEnvelope=loss.clone()
         if loss<self.lowerEnvelope: #前面不能加else,不然因为两者的自动衰减会导致值出现错误
