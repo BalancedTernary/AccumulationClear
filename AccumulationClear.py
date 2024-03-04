@@ -4,7 +4,7 @@ import sys
 import torch
 from torch.optim.optimizer import Optimizer, required
 
-#此优化器的主要超参数调节方法(仅供参考，还没摸索出最优调试方法)
+#此优化器的主要超参数调节方法
 #1.设定resistance为None,lr_supplement为0,weight_decay为0
 #2.寻找一个可以持续训练,不频繁发散的最大lr
 #3.逐步调大resistance,寻找不破坏训练的最大resistance
@@ -15,7 +15,7 @@ from torch.optim.optimizer import Optimizer, required
 #8.依据损失下降曲线设定其他参数
 
 class AccumulationClear(Optimizer):
-    def __init__(self, params, lr=1e-4, resistance=None, lr_supplement=None, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=100, limit_snapshot_cycle=100, lossNeverNegative=True):
+    def __init__(self, params, lr=1e-4, resistance=None, lr_supplement=1e-1, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=100, limit_snapshot_cycle=100, lossNeverNegative=True):
         #parameter checks
         if lr<0: #学习速率
             raise ValueError(f'Invalid 学习速率: {lr}')
@@ -126,7 +126,12 @@ class AccumulationClear(Optimizer):
                     #state['speed'][decayMask]*=(1-self.weight_decay)
                     state['speed'][~torch.isfinite(state['speed'])]=0
 
-                    p.data.add_(state['speed'])
+                    #p.data.add_(state['speed'])
+                    buffer=p.data.add(state['speed'])
+                    clearMask=buffer*p.data<0
+                    buffer[clearMask]=0
+                    p.data=buffer.data
+                    state['speed'][clearMask]=0
 
                     if neutral>self.snapshot_recovery_threshold*self.minNeutral or not loss.isfinite():
                         state['speed'] = torch.zeros_like(p.grad.data)
