@@ -142,8 +142,9 @@ class AccumulationClear(Optimizer):
                     #d=-p.grad.data*self.lr*((p.data.abs()/self.maxAbsData)+self.lr_supplement)
                     #d=-p.grad.data.sign()*torch.rand_like(p.grad.data)*k*self.lr*((p.data.abs()/self.maxAbsData)+self.lr_supplement)
                     rand=torch.rand_like(p.grad.data)
-                    rand=1-(1-(rand**((state['absFlat'].abs()+self.eps)/(state['flat'].abs()+self.eps))))**((state['flat'].abs()+self.eps)/(state['absFlat'].abs()+self.eps))
+                    rand=1-(1-(rand**((state['absFlat'].abs().sqrt().sqrt()+self.eps)/(state['flat'].abs().sqrt().sqrt()+self.eps))))**((state['flat'].abs().sqrt().sqrt()+self.eps)/(state['absFlat'].abs().sqrt().sqrt()+self.eps))
                     rand.clamp_(min=0,max=1)
+                    rand*=((state['flat'].abs().sqrt().sqrt()+self.eps)/(state['absFlat'].abs().sqrt().sqrt()+self.eps))
                     d=-state['flat'].sign()*rand*(k*(p.data.abs()/self.maxAbsData)+b)
                     d[~torch.isfinite(d)]=0
                     
