@@ -8,7 +8,7 @@ from torch.optim.optimizer import Optimizer, required
 #1.
 
 class AccumulationClear(Optimizer):
-    def __init__(self, params, lr=1e-2, smooth=10, lr_supplement=1e-2, soft_start=None, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=100, limit_snapshot_cycle=100, lossNeverNegative=True, deburr=False, nap=False, eps=1e-18):
+    def __init__(self, params, lr=1e-2, smooth=10, lr_supplement=1e-2, soft_start=None, weight_decay=0, decay_flexibility=1, smoots_decrement=1e-2, snapshot_recovery_threshold=100, limit_snapshot_cycle=10, lossNeverNegative=True, deburr=False, nap=False, eps=1e-18):
         #parameter checks
         if lr<0: #学习速率
             raise ValueError(f'Invalid 学习速率: {lr}')
